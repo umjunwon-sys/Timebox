@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TimeBox">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a6b6b">
+<link rel="manifest" href="/manifest.json">
+<title>TimeBox Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#1a6b6b;--teal-mid:#2d9191;--teal-light:#e6f2f2;--teal-pale:#f4fafa;
+  --bg:#f5f8f8;--white:#fff;--text:#2a3535;--muted:#8aabab;--border:#ddeaea;
+  --shadow:0 2px 16px rgba(26,107,107,.10);
+  --header-h:130px;--tab-h:46px;--bottom-h:52px;--row-h:44px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── HEADER ── */
+.header{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:100;background:var(--teal);padding:env(safe-area-inset-top,12px) 18px 0}
+.header-top{display:flex;justify-content:space-between;align-items:center;padding:12px 0 8px}
+.header-title{font-size:17px;font-weight:700;color:#fff;letter-spacing:.5px}
+.save-badge{font-size:11px;padding:3px 11px;border-radius:20px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);transition:all .3s}
+.save-badge.saved{background:#a3e4d7;color:#0a4a3a}
+
+/* Date nav row */
+.date-nav{display:flex;align-items:center;justify-content:space-between;padding:4px 0 6px}
+.nav-arrow{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:18px;width:34px;height:34px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
+.nav-arrow:active{background:rgba(255,255,255,.3)}
+.date-center{flex:1;text-align:center}
+.date-main{font-size:15px;font-weight:700;color:#fff;letter-spacing:.3px}
+.date-sub{font-size:11px;color:rgba(255,255,255,.65);margin-top:1px}
+
+/* Week strip */
+.week-strip{display:flex;gap:3px;padding-bottom:12px;overflow-x:auto;scrollbar-width:none}
+.week-strip::-webkit-scrollbar{display:none}
+.week-day{flex:1;min-width:40px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 0;border-radius:10px;border:none;background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);font-family:inherit;cursor:pointer;transition:all .2s}
+.week-day .wd-name{font-size:10px;font-weight:500}
+.week-day .wd-num{font-size:13px;font-weight:700}
+.week-day.today-pill{background:rgba(255,255,255,.2);color:rgba(255,255,255,.8)}
+.week-day.active{background:#fff;color:var(--teal);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.week-day.has-data .wd-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.5);margin-top:1px}
+.week-day.active .wd-dot{background:var(--teal-mid)}
+.wd-dot{width:4px;height:4px;border-radius:50%;background:transparent;margin-top:1px}
+
+/* ── TABS ── */
+.tabs{position:fixed;top:var(--header-h);left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:99;display:flex;background:var(--white);border-bottom:1px solid var(--border)}
+.tab-btn{flex:1;padding:13px 0;background:none;border:none;border-bottom:2.5px solid transparent;font-size:13px;font-family:inherit;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s}
+.tab-btn.active{border-bottom-color:var(--teal);color:var(--teal);font-weight:700}
+
+/* ── BODY ── */
+.body{padding-top:calc(var(--header-h) + var(--tab-h));padding-bottom:calc(var(--bottom-h) + 24px + env(safe-area-inset-bottom,0px));min-height:100vh}
+.page{display:none;padding:16px}
+.page.active{display:flex;flex-direction:column;gap:14px}
+
+/* ── CARD ── */
+.card{background:var(--white);border-radius:16px;padding:16px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.card-title{font-size:13px;font-weight:700;color:var(--teal);margin-bottom:12px;letter-spacing:.3px}
+
+/* ── INPUTS ── */
+textarea,input[type="text"]{font-family:'Noto Sans KR',sans-serif;font-size:14px;color:var(--text);background:var(--teal-pale);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;width:100%;outline:none;resize:none;transition:border-color .2s;-webkit-appearance:none}
+textarea:focus,input[type="text"]:focus{border-color:var(--teal-mid);background:#fff}
+textarea::placeholder,input::placeholder{color:#bcc}
+
+/* BIG 3 */
+.big3-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.big3-num{width:28px;height:28px;flex-shrink:0;background:var(--teal);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.big3-input{flex:1;background:none;border:none;border-bottom:1.5px solid var(--border);border-radius:0;padding:6px 2px}
+.big3-input:focus{border-bottom-color:var(--teal-mid);background:none}
+
+/* BRAIN DUMP */
+.dump-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.dump-check{width:22px;height:22px;flex-shrink:0;border:2px solid var(--border);border-radius:5px;background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.dump-check.done{background:var(--teal);border-color:var(--teal)}
+.dump-check.done::after{content:'✓';color:#fff;font-size:13px}
+.dump-input{flex:1;background:none;border:none;border-bottom:1.5px solid var(--border);border-radius:0;padding:6px 2px}
+.dump-input:focus{border-bottom-color:var(--teal-mid);background:none}
+.dump-input.done{text-decoration:line-through;color:var(--muted)}
+
+/* TIMEBOX */
+.tb-card{background:var(--white);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border)}
+.tb-hint{font-size:11px;color:var(--muted);text-align:center;padding:9px 0 6px}
+.tb-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.tb-table thead th{background:var(--teal);color:#fff;padding:9px 6px;font-size:12px;font-weight:600;text-align:center}
+.tb-table thead th:nth-child(1){width:42px}
+.tb-row td{border-bottom:1px solid var(--border);vertical-align:middle}
+.tb-hour{text-align:center;font-weight:700;font-size:13px;color:var(--teal);padding:0;height:var(--row-h);vertical-align:middle;user-select:none}
+.tb-hour.night{color:#9ab;font-size:12px}
+.tb-input{width:100%;background:transparent;border:none;border-radius:0;padding:7px 8px;font-size:12px;height:var(--row-h);outline:none;font-family:'Noto Sans KR',sans-serif;color:var(--text)}
+.tb-input:focus{background:rgba(255,255,255,.85)}
+.tb-input::placeholder{color:#c8dada}
+.free-bg{}
+td.drag-sel{background:#c2e4e4 !important}
+.tb-block-cell{padding:0;vertical-align:top}
+.tb-block-inner{display:flex;flex-direction:column;padding:6px 8px 4px 12px;gap:3px;height:100%}
+.tb-block-area{width:100%;background:transparent;border:none;border-radius:0;font-size:13px;font-family:'Noto Sans KR',sans-serif;color:var(--text);resize:none;outline:none;flex:1;min-height:32px;padding:2px 0}
+.tb-block-area::placeholder{color:rgba(0,0,0,.2)}
+.tb-block-meta{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+.tb-block-time{font-size:10px;font-weight:600;opacity:.55}
+.tb-del{background:none;border:none;font-size:15px;opacity:.38;cursor:pointer;padding:2px 4px;line-height:1;color:inherit}
+.tb-del:active{opacity:.8}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(var(--bottom-h) + 14px);left:50%;transform:translateX(-50%) translateY(16px);background:var(--teal);color:#fff;font-size:12px;padding:9px 20px;border-radius:22px;opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;z-index:300;box-shadow:0 4px 14px rgba(26,107,107,.35)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* FEEDBACK */
+.fb-label{font-size:12px;font-weight:600;color:var(--teal);margin-bottom:6px;display:block}
+.fb-block{margin-bottom:14px}
+
+/* BOTTOM */
+.bottom-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--white);border-top:1px solid var(--border);padding:8px 18px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;z-index:100}
+.progress-label{font-size:11px;color:var(--muted);white-space:nowrap}
+.progress-track{flex:1;height:6px;background:var(--teal-light);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--teal-mid);border-radius:3px;transition:width .4s ease}
+.progress-count{font-size:12px;font-weight:700;color:var(--teal)}
+.reset-btn{width:100%;padding:13px;background:none;border:1.5px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px}
+
+/* INSTALL */
+.install-banner{display:none;position:fixed;bottom:calc(var(--bottom-h)+10px);left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;background:var(--teal);color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 4px 20px rgba(26,107,107,.35);z-index:200;align-items:center;gap:12px}
+.install-banner.show{display:flex}
+.install-banner p{flex:1;font-size:13px;line-height:1.5}
+.install-btn{background:#fff;color:var(--teal);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap}
+.install-x{background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;padding:0 2px}
+
+/* ── CALENDAR MODAL ── */
+.cal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s}
+.cal-overlay.open{opacity:1;pointer-events:all}
+.cal-sheet{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(40px);transition:transform .25s cubic-bezier(.32,1,.46,1);box-shadow:0 -4px 32px rgba(0,0,0,.15)}
+.cal-overlay.open .cal-sheet{transform:translateY(0)}
+.cal-handle{width:40px;height:4px;background:#dde;border-radius:2px;margin:12px auto 0}
+.cal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px}
+.cal-month-label{font-size:16px;font-weight:700;color:var(--teal);cursor:pointer;user-select:none}
+.cal-nav{background:none;border:none;color:var(--teal);font-size:20px;width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.cal-nav:active{background:var(--teal-light)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 12px 8px}
+.cal-dname{text-align:center;font-size:11px;font-weight:600;color:var(--muted);padding:4px 0 6px}
+.cal-dname.sun{color:#e07070}
+.cal-dname.sat{color:#5a9fd4}
+.cal-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:14px;cursor:pointer;position:relative;transition:background .12s;border:none;background:none;font-family:inherit;color:var(--text)}
+.cal-cell:active{background:var(--teal-light)}
+.cal-cell.other-month{color:#ccc}
+.cal-cell.has-data::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--teal-mid);opacity:.7}
+.cal-cell.is-today{font-weight:700;color:var(--teal)}
+.cal-cell.is-today::before{content:'';position:absolute;inset:2px;border-radius:8px;border:1.5px solid var(--teal-mid);opacity:.5}
+.cal-cell.selected{background:var(--teal);color:#fff;font-weight:700}
+.cal-cell.selected::after{background:#fff}
+.cal-cell.sun{color:#e07070}
+.cal-cell.sat{color:#5a9fd4}
+.cal-cell.selected.sun,.cal-cell.selected.sat{color:#fff}
+.cal-today-btn{display:block;margin:8px auto 0;background:none;border:1.5px solid var(--border);border-radius:20px;padding:7px 24px;font-size:13px;font-family:inherit;color:var(--teal);cursor:pointer;font-weight:600}
+.cal-today-btn:active{background:var(--teal-light)}
+</style>
+</head>
+<body>
+
+<div class="header" id="header">
+  <div class="header-top">
+    <span class="header-title">📋 TimeBox</span>
+    <span class="save-badge" id="saveBadge">자동저장</span>
+  </div>
+  <div class="date-nav">
+    <button class="nav-arrow" onclick="goDate(-1)">‹</button>
+    <div class="date-center" onclick="openCal()" style="cursor:pointer">
+      <div class="date-main" id="dateMain"></div>
+      <div class="date-sub" id="dateSub"></div>
+    </div>
+    <button class="nav-arrow" onclick="goDate(+1)">›</button>
+  </div>
+  <div class="week-strip" id="weekStrip"></div>
+</div>
+
+<!-- CALENDAR MODAL -->
+<div class="cal-overlay" id="calOverlay" onclick="calOverlayClick(event)">
+  <div class="cal-sheet" id="calSheet">
+    <div class="cal-handle"></div>
+    <div class="cal-head">
+      <button class="cal-nav" onclick="calShift(-1)">‹</button>
+      <span class="cal-month-label" id="calMonthLabel"></span>
+      <button class="cal-nav" onclick="calShift(+1)">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <button class="cal-today-btn" onclick="calGoToday()">오늘로 이동</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab(0)">할 일</button>
+  <button class="tab-btn" onclick="switchTab(1)">타임박스</button>
+  <button class="tab-btn" onclick="switchTab(2)">피드백</button>
+</div>
+
+<div class="body">
+  <!-- 할 일 -->
+  <div class="page active" id="page0">
+    <div class="card">
+      <div class="card-title">🌅 기상 직후 할 일</div>
+      <textarea id="wakeTask" rows="3" placeholder="일어나자마자 할 일을 적어보세요"></textarea>
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 Big 3 — 오늘의 핵심</div>
+      <div id="big3"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🧠 Brain Dump</div>
+      <div id="brainDump"></div>
+    </div>
+  </div>
+
+  <!-- 타임박스 -->
+  <div class="page" id="page1">
+    <div class="tb-card">
+      <p class="tb-hint">✦ 꾹 눌러서 드래그하면 블록이 생성돼요</p>
+      <table class="tb-table">
+        <thead><tr><th>시</th><th>전반 30분</th><th>후반 30분</th></tr></thead>
+        <tbody id="tbBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 피드백 -->
+  <div class="page" id="page2">
+    <div class="card">
+      <div class="card-title">📝 하루 피드백</div>
+      <div class="fb-block">
+        <span class="fb-label">🌱 시작 — 오늘 잘 시작했나요?</span>
+        <textarea id="fb_start" rows="3" placeholder="아침 루틴, 컨디션, 계획 점검"></textarea>
+      </div>
+      <div class="fb-block">
+        <span class="fb-label">☀️ 중간 — 현재 상태는?</span>
+        <textarea id="fb_mid" rows="3" placeholder="오후 중간 점검, 에너지 상태"></textarea>
+      </div>
+      <div class="fb-block">
+        <span class="fb-label">🌙 마무리 — 오늘을 돌아보며</span>
+        <textarea id="fb_end" rows="3" placeholder="잘한 것, 배운 것, 내일 할 것"></textarea>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="resetDay()">🗑 이 날 데이터 초기화</button>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <span class="progress-label">Brain Dump</span>
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <span class="progress-count" id="progressCount">0/7</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="install-banner" id="installBanner">
+  <p>홈 화면에 추가하면<br>앱처럼 사용할 수 있어요!</p>
+  <button class="install-btn" id="installBtn">설치</button>
+  <button class="install-x" onclick="dismissInstall()">✕</button>
+</div>
+
+<script>
+// ══════════════════════════════
+// DATE UTILS
+// ══════════════════════════════
+const KO_DAYS = ['일','월','화','수','목','금','토'];
+const KO_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function dateToKey(d){ // Date → 'YYYY-MM-DD'
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function keyToDate(k){ // 'YYYY-MM-DD' → Date (local)
+  const [y,m,d]=k.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function addDays(k, n){
+  const d=keyToDate(k);
+  d.setDate(d.getDate()+n);
+  return dateToKey(d);
+}
+function todayKey(){ return dateToKey(new Date()); }
+
+// Returns Mon–Sun keys of the week containing dateKey
+function weekOf(k){
+  const d=keyToDate(k);
+  const dow=d.getDay(); // 0=Sun
+  const monday=new Date(d);
+  monday.setDate(d.getDate() - (dow===0?6:dow-1));
+  return Array.from({length:7},(_,i)=>{ const x=new Date(monday); x.setDate(monday.getDate()+i); return dateToKey(x); });
+}
+
+function fmtMain(k){
+  const d=keyToDate(k);
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtSub(k){
+  const d=keyToDate(k);
+  const dow=KO_DAYS[d.getDay()];
+  const isToday=k===todayKey();
+  return `${dow}요일${isToday?' · 오늘':''}`;
+}
+
+// ══════════════════════════════
+// DATA
+// ══════════════════════════════
+const HOURS=[...Array.from({length:19},(_,i)=>i+5),24,25,26]; // 22 hours
+// slot = hourIdx*2 + col (0=:00, 1=:30) → 44 slots total
+function slotH(i){ const h=5+(i>>1); return h>=24?h-24:h; }
+function slotLabel(i){ if(i>=44)return'3:00'; return slotH(i)+':'+((i&1)?'30':'00'); }
+function dH(h){ return h>=24?h-24:h; }
+
+// Block segment computation for 3-col table
+function computeSegs(b){
+  const sR=b.s>>1, sC=b.s&1, eR=b.e>>1, eC=b.e&1;
+  const segs=[];
+  if(sR===eR){
+    segs.push({row:sR,c0:sC,cs:eC-sC+1,rs:1,isMain:true});
+  } else if(sC===0&&eC===1){
+    segs.push({row:sR,c0:0,cs:2,rs:eR-sR+1,isMain:true});
+  } else if(sC===0&&eC===0){
+    segs.push({row:sR,c0:0,cs:2,rs:eR-sR,isMain:true});
+    segs.push({row:eR,c0:0,cs:1,rs:1,isMain:false});
+  } else if(sC===1&&eC===1){
+    segs.push({row:sR,c0:1,cs:1,rs:1,isMain:true});
+    if(eR>sR) segs.push({row:sR+1,c0:0,cs:2,rs:eR-sR,isMain:false});
+  } else { // sC=1 eC=0
+    segs.push({row:sR,c0:1,cs:1,rs:1,isMain:true});
+    if(eR>sR+1) segs.push({row:sR+1,c0:0,cs:2,rs:eR-sR-1,isMain:false});
+    if(eR>sR) segs.push({row:eR,c0:0,cs:1,rs:1,isMain:false});
+  }
+  return segs;
+}
+const COLORS=['#2d9191','#e8734a','#7c5cbf','#3a9bd5','#2dab82','#c0394b','#d4a017'];
+
+function freshDay(){
+  return {
+    wakeTask:'',
+    brainDump:Array(10).fill(null).map(()=>({text:'',done:false})),
+    big3:['','',''],
+    feedback:{start:'',mid:'',end:''},
+    timeBox:{free:Object.fromEntries(Array.from({length:44},(_,i)=>[i,''])),blocks:[]}
+  };
+}
+function isEmptyDay(d){
+  if(!d) return true;
+  return !d.wakeTask && d.big3.every(x=>!x) && d.brainDump.every(x=>!x.text) &&
+    !d.feedback.start && !d.feedback.mid && !d.feedback.end &&
+    (!d.timeBox?.blocks?.length) &&
+    Object.values(d.timeBox?.free||{}).every(f=>!f || (Array.isArray(f)?!f[0]&&!f[1]:!f));
+}
+
+function loadAll(){ try{return JSON.parse(localStorage.getItem('tbx_date')||'{}')}catch{return{}} }
+function saveAll(a){ localStorage.setItem('tbx_date',JSON.stringify(a)); }
+
+let all=loadAll();
+let curDate=todayKey();
+
+function day(k){
+  k=k||curDate;
+  if(!all[k]) all[k]=freshDay();
+  if(!all[k].timeBox?.blocks) all[k].timeBox={free:Object.fromEntries(Array.from({length:44},(_,i)=>[i,''])),blocks:[]};
+  return all[k];
+}
+
+// ══════════════════════════════
+// SAVE
+// ══════════════════════════════
+let _st=null;
+function qsave(){
+  clearTimeout(_st);
+  _st=setTimeout(()=>{
+    saveAll(all);
+    const b=document.getElementById('saveBadge');
+    b.textContent='✓ 저장됨'; b.classList.add('saved');
+    setTimeout(()=>{b.textContent='자동저장';b.classList.remove('saved');},1200);
+  },400);
+}
+
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+// ══════════════════════════════
+// TOAST
+// ══════════════════════════════
+let _tt=null;
+function toast(msg,dur=2000){ const e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); clearTimeout(_tt); if(dur>0)_tt=setTimeout(()=>e.classList.remove('show'),dur); }
+function hideToast(){ document.getElementById('toast').classList.remove('show'); clearTimeout(_tt); }
+
+// ══════════════════════════════
+// RENDER HEADER
+// ══════════════════════════════
+function renderHeader(){
+  document.getElementById('dateMain').textContent = fmtMain(curDate);
+  document.getElementById('dateSub').innerHTML  = fmtSub(curDate) + ' <span style="font-size:10px;opacity:.45">▾</span>';
+
+  const week=weekOf(curDate);
+  const TODAY=todayKey();
+  document.getElementById('weekStrip').innerHTML = week.map(k=>{
+    const d=keyToDate(k);
+    const name=KO_SHORT[d.getDay()];
+    const num=d.getDate();
+    const isActive=k===curDate;
+    const isToday=k===TODAY;
+    const hasData=!isEmptyDay(all[k]);
+    return `<button class="week-day ${isActive?'active':''} ${isToday&&!isActive?'today-pill':''} ${hasData?'has-data':''}" onclick="goToDate('${k}')">
+      <span class="wd-name">${name}</span>
+      <span class="wd-num">${num}</span>
+      <span class="wd-dot"></span>
+    </button>`;
+  }).join('');
+}
+
+// ══════════════════════════════
+// RENDER CONTENT
+// ══════════════════════════════
+function renderBig3(){
+  document.getElementById('big3').innerHTML=day().big3.map((v,i)=>`
+    <div class="big3-row">
+      <div class="big3-num">${i+1}</div>
+      <input type="text" class="big3-input" value="${esc(v)}" placeholder="우선순위 ${i+1}" oninput="day().big3[${i}]=this.value;qsave()"/>
+    </div>`).join('');
+}
+
+function renderBrainDump(){
+  document.getElementById('brainDump').innerHTML=day().brainDump.map((item,i)=>`
+    <div class="dump-row">
+      <div class="dump-check ${item.done?'done':''}" onclick="toggleDump(${i})"></div>
+      <input type="text" class="dump-input ${item.done?'done':''}" value="${esc(item.text)}" placeholder="항목 ${i+1}" oninput="day().brainDump[${i}].text=this.value;qsave()"/>
+    </div>`).join('');
+  updateProgress();
+}
+
+function renderTimeBox(){
+  const {free,blocks}=day().timeBox;
+
+  // Build segment map and skip-cell set
+  const segMap={};  // "row,col" -> segment
+  const skip=new Set(); // "row,col" to skip (covered by rowspan/colspan)
+  blocks.forEach(b=>{
+    computeSegs(b).forEach((seg,si)=>{
+      const key=seg.row+','+seg.c0;
+      segMap[key]={seg,block:b,isMain:seg.isMain};
+      // Mark cells covered by colspan (same row, extra cols)
+      for(let dc=1;dc<seg.cs;dc++) skip.add(seg.row+','+(seg.c0+dc));
+      // Mark cells covered by rowspan (subsequent rows)
+      for(let dr=1;dr<seg.rs;dr++)
+        for(let dc=0;dc<seg.cs;dc++) skip.add((seg.row+dr)+','+(seg.c0+dc));
+    });
+  });
+
+  let html='';
+  for(let ri=0;ri<HOURS.length;ri++){
+    const h=HOURS[ri], isNight=h>=24;
+    const rowBg=isNight?(ri%2===0?'#f2f6f6':'#edf3f3'):(ri%2===0?'#fff':'#fafefe');
+    html+=`<tr class="tb-row" style="background:${rowBg}">`;
+    html+=`<td class="tb-hour${isNight?' night':''}">${dH(h)}</td>`;
+
+    for(let col=0;col<2;col++){
+      const slot=ri*2+col;
+      const ck=ri+','+col;
+      if(skip.has(ck)) continue; // covered by rowspan/colspan
+
+      if(segMap[ck]){
+        const {seg,block:b,isMain}=segMap[ck];
+        const bc=b.color||'#2d9191', bg=bc+'15';
+        const totalSlots=b.e-b.s+1;
+        const textH=Math.max(32, totalSlots*22-18);
+        const borderTop=isMain?`border-top:2px solid ${bc}40`:'border-top:none';
+        html+=`<td colspan="${seg.cs}" rowspan="${seg.rs}" class="tb-block-cell"
+          style="background:${bg};border-left:3px solid ${bc};border-bottom:2px solid ${bc}40;${borderTop}">`;
+        if(isMain){
+          html+=`<div class="tb-block-inner" style="color:${bc}">
+            <textarea class="tb-block-area" style="min-height:${textH}px" oninput="updBlock('${b.id}',this.value)" placeholder="내용 입력">${esc(b.text)}</textarea>
+            <div class="tb-block-meta">
+              <span class="tb-block-time">${slotLabel(b.s)} ~ ${slotLabel(b.e+1)}</span>
+              <button class="tb-del" onclick="delBlock('${b.id}')" style="color:${bc}">✕</button>
+            </div>
+          </div>`;
+        }
+        html+=`</td>`;
+      } else {
+        const fv=(free[slot])||'';
+        html+=`<td data-slot="${slot}"><input type="text" class="tb-input" value="${esc(fv)}" placeholder="—" oninput="updFree(${slot},this.value)"/></td>`;
+      }
+    }
+    html+=`</tr>`;
+  }
+  document.getElementById('tbBody').innerHTML=html;
+}
+
+function renderFeedback(){
+  const fb=day().feedback;
+  document.getElementById('fb_start').value=fb.start;
+  document.getElementById('fb_mid').value=fb.mid;
+  document.getElementById('fb_end').value=fb.end;
+}
+
+function renderAll(){
+  renderHeader();
+  document.getElementById('wakeTask').value=day().wakeTask;
+  renderBig3(); renderBrainDump(); renderTimeBox(); renderFeedback();
+}
+
+function updateProgress(){
+  const done=day().brainDump.filter(b=>b.done).length;
+  document.getElementById('progressFill').style.width=(done/10*100)+'%';
+  document.getElementById('progressCount').textContent=done+'/10';
+}
+
+// ══════════════════════════════
+// UPDATERS
+// ══════════════════════════════
+document.getElementById('wakeTask').addEventListener('input',function(){day().wakeTask=this.value;qsave();});
+['fb_start','fb_mid','fb_end'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',function(){day().feedback[id.replace('fb_','')]=this.value;qsave();});
+});
+function toggleDump(i){day().brainDump[i].done=!day().brainDump[i].done;qsave();renderBrainDump();}
+function updFree(i,v){day().timeBox.free[i]=v;qsave();}
+function updBlock(id,v){const b=day().timeBox.blocks.find(b=>b.id===id);if(b){b.text=v;qsave();}}
+function delBlock(id){day().timeBox.blocks=day().timeBox.blocks.filter(b=>b.id!==id);qsave();renderTimeBox();}
+
+// ══════════════════════════════
+// DRAG CREATE BLOCK (30-min slot based)
+// ══════════════════════════════
+let _drag=false,_ds=null,_de=null,_lpt=null,_colorIdx=0;
+
+function getBmap(){const m={};day().timeBox.blocks.forEach(b=>{for(let i=b.s;i<=b.e;i++)m[i]=true;});return m;}
+
+function slotFromTouch(t){
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  if(!el)return null;
+  const td=el.closest('td[data-slot]');
+  return td?parseInt(td.dataset.slot):null;
+}
+
+function hilite(){
+  const s=Math.min(_ds,_de), e=Math.max(_ds,_de);
+  document.querySelectorAll('#tbBody td[data-slot]').forEach(td=>{
+    const sl=parseInt(td.dataset.slot);
+    td.classList.toggle('drag-sel', sl>=s && sl<=e);
+  });
+}
+function clearHilite(){
+  document.querySelectorAll('#tbBody td.drag-sel').forEach(td=>td.classList.remove('drag-sel'));
+}
+
+function makeBlock(s,e){
+  const bmap=getBmap();
+  for(let i=s;i<=e;i++) if(bmap[i]){toast('⚠️ 기존 블록과 겹칩니다');return;}
+  const id='b'+Date.now(), color=COLORS[_colorIdx++%COLORS.length];
+  day().timeBox.blocks.push({id,s,e,text:'',color});
+  qsave(); renderTimeBox();
+  setTimeout(()=>{const a=document.querySelectorAll('.tb-block-area');if(a.length)a[a.length-1].focus();},80);
+}
+
+document.addEventListener('touchstart',function(ev){
+  const tb=document.getElementById('tbBody');
+  if(!tb||!tb.contains(ev.target)||ev.target.closest('.tb-block-cell'))return;
+  const startSlot=slotFromTouch(ev.touches[0]);
+  if(startSlot===null||getBmap()[startSlot])return;
+  const y0=ev.touches[0].clientY;
+
+  _lpt=setTimeout(()=>{
+    _drag=true; _ds=_de=startSlot;
+    if(navigator.vibrate)navigator.vibrate(35);
+    hilite(); toast('블록 생성 중… 손을 떼면 완료 ✦',0);
+  },310);
+
+  const onMove=ev2=>{
+    if(!_drag){if(Math.abs(ev2.touches[0].clientY-y0)>10)clearTimeout(_lpt);return;}
+    const cur=slotFromTouch(ev2.touches[0]);
+    if(cur!==null&&cur!==_de){_de=cur;hilite();}
+    ev2.preventDefault();
+  };
+  const onEnd=()=>{
+    clearTimeout(_lpt);
+    document.removeEventListener('touchmove',onMove);
+    document.removeEventListener('touchend',onEnd);
+    if(_drag){
+      _drag=false;hideToast();clearHilite();
+      const s=Math.min(_ds,_de), e=Math.max(_ds,_de);
+      makeBlock(s,e);
+    }
+  };
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('touchend',onEnd);
+},{passive:true});
+
+// ══════════════════════════════
+// NAVIGATION
+// ══════════════════════════════
+let _tab=0;
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===t));
+  document.querySelectorAll('.page').forEach((p,i)=>p.classList.toggle('active',i===t));
+  _tab=t;
+}
+function goDate(n){ curDate=addDays(curDate,n); renderAll(); }
+function goToDate(k){ curDate=k; renderAll(); }
+function resetDay(){
+  if(confirm('이 날 데이터를 초기화할까요?')){all[curDate]=freshDay();saveAll(all);renderAll();}
+}
+
+// ══════════════════════════════
+// HEADER HEIGHT
+// ══════════════════════════════
+function fixH(){
+  const h=document.getElementById('header').offsetHeight;
+  document.documentElement.style.setProperty('--header-h',h+'px');
+}
+
+// ══════════════════════════════
+// PWA
+// ══════════════════════════════
+let _dp=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_dp=e;setTimeout(()=>{if(!localStorage.getItem('idi'))document.getElementById('installBanner').classList.add('show');},3000);});
+document.getElementById('installBtn').addEventListener('click',async()=>{if(_dp){_dp.prompt();await _dp.userChoice;_dp=null;}else alert('Safari에서 열고\n하단 공유 버튼 → "홈 화면에 추가"를 탭하세요.');document.getElementById('installBanner').classList.remove('show');});
+function dismissInstall(){document.getElementById('installBanner').classList.remove('show');localStorage.setItem('idi','1');}
+const _ios=/iphone|ipad|ipod/i.test(navigator.userAgent),_std=window.matchMedia('(display-mode:standalone)').matches||window.navigator.standalone;
+if(_ios&&!_std)setTimeout(()=>{if(!localStorage.getItem('idi')){const bn=document.getElementById('installBanner');bn.querySelector('p').innerHTML='홈 화면에 추가하면<br>앱처럼 사용할 수 있어요!<br><small style="opacity:.7">Safari → 공유 → 홈 화면에 추가</small>';bn.classList.add('show');}},3000);
+
+
+// ══════════════════════════════
+// CALENDAR
+// ══════════════════════════════
+let calYear=0, calMonth=0;
+
+function openCal(){
+  const d=keyToDate(curDate);
+  calYear=d.getFullYear(); calMonth=d.getMonth();
+  renderCal();
+  document.getElementById('calOverlay').classList.add('open');
+}
+function closeCal(){ document.getElementById('calOverlay').classList.remove('open'); }
+function calOverlayClick(e){ if(e.target===document.getElementById('calOverlay')) closeCal(); }
+
+function calShift(n){
+  calMonth+=n;
+  if(calMonth<0){calMonth=11;calYear--;}
+  if(calMonth>11){calMonth=0;calYear++;}
+  renderCal();
+}
+
+function calGoToday(){
+  const k=todayKey();
+  curDate=k;
+  closeCal();
+  renderAll();
+}
+
+function calSelect(k){
+  curDate=k;
+  closeCal();
+  renderAll();
+}
+
+function renderCal(){
+  const KO_MONTHS=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('calMonthLabel').textContent=calYear+'년 '+KO_MONTHS[calMonth];
+
+  const first=new Date(calYear, calMonth, 1);
+  const last=new Date(calYear, calMonth+1, 0);
+  // start from Monday
+  let startDow=first.getDay(); // 0=Sun
+  const offset=startDow===0?6:startDow-1; // days before 1st (Mon-based)
+  const TODAY=todayKey();
+
+  const DNAMES=['월','화','수','목','금','토','일'];
+  let html=DNAMES.map((n,i)=>`<div class="cal-dname ${i===5?'sat':i===6?'sun':''}">${n}</div>`).join('');
+
+  // prev month days
+  const prevLast=new Date(calYear, calMonth, 0).getDate();
+  for(let i=offset-1;i>=0;i--){
+    const d=prevLast-i;
+    const k=dateToKey(new Date(calYear, calMonth-1, d));
+    const hasData=!isEmptyDay(all[k]);
+    html+=`<button class="cal-cell other-month ${hasData?'has-data':''}" onclick="calSelect('${k}')">${d}</button>`;
+  }
+
+  // this month
+  for(let d=1;d<=last.getDate();d++){
+    const k=dateToKey(new Date(calYear,calMonth,d));
+    const dow=new Date(calYear,calMonth,d).getDay(); // 0=Sun,6=Sat
+    const isSat=dow===6, isSun=dow===0;
+    const isMon=(dow===1), isWedFriSun=false;
+    const hasData=!isEmptyDay(all[k]);
+    const isToday=k===TODAY;
+    const isSel=k===curDate;
+    html+=`<button class="cal-cell ${isSun?'sun':isSat?'sat':''} ${hasData?'has-data':''} ${isToday?'is-today':''} ${isSel?'selected':''}"
+      onclick="calSelect('${k}')">${d}</button>`;
+  }
+
+  // next month fill
+  const total=offset+last.getDate();
+  const rem=(7-total%7)%7;
+  for(let d=1;d<=rem;d++){
+    const k=dateToKey(new Date(calYear,calMonth+1,d));
+    const hasData=!isEmptyDay(all[k]);
+    html+=`<button class="cal-cell other-month ${hasData?'has-data':''}" onclick="calSelect('${k}')">${d}</button>`;
+  }
+
+  document.getElementById('calGrid').innerHTML=html;
+}
+
+
+// ══════════════════════════════
+// INIT
+// ══════════════════════════════
+window.addEventListener('load',()=>{renderAll();fixH();});
+window.addEventListener('resize',fixH);
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js');
+}
+</script>
+</body>
+</html>
