@@ -614,8 +614,7 @@ function fixH(){
 // ══════════════════════════════
 let _dp=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_dp=e;setTimeout(()=>{if(!localStorage.getItem('idi'))document.getElementById('installBanner').classList.add('show');},3000);});
-document.getElementById('installBtn').addEventListener('click',async()=>{if(_dp){_dp.prompt();await _dp.userChoice;_dp=null;}else alert('Safari에서 열고
-하단 공유 버튼 → "홈 화면에 추가"를 탭하세요.');document.getElementById('installBanner').classList.remove('show');});
+document.getElementById('installBtn').addEventListener('click',async()=>{if(_dp){_dp.prompt();await _dp.userChoice;_dp=null;}else alert('Safari에서 열고\n하단 공유 버튼 → "홈 화면에 추가"를 탭하세요.');document.getElementById('installBanner').classList.remove('show');});
 function dismissInstall(){document.getElementById('installBanner').classList.remove('show');localStorage.setItem('idi','1');}
 const _ios=/iphone|ipad|ipod/i.test(navigator.userAgent),_std=window.matchMedia('(display-mode:standalone)').matches||window.navigator.standalone;
 if(_ios&&!_std)setTimeout(()=>{if(!localStorage.getItem('idi')){const bn=document.getElementById('installBanner');bn.querySelector('p').innerHTML='홈 화면에 추가하면<br>앱처럼 사용할 수 있어요!<br><small style="opacity:.7">Safari → 공유 → 홈 화면에 추가</small>';bn.classList.add('show');}},3000);
